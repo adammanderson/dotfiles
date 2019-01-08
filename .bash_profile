@@ -2,8 +2,6 @@
 #   ~/.extra can be used for settings you don’t want to commit,
 #   Use it to configure your PATH, thus it being first in line.
 
-alias bef='bundle exec foreman start'
-
 export PATH="/usr/local/sbin:$PATH"
 export RBENV_ROOT=/usr/local/var/rbenv
 export PATH=$PATH:$MYSQL
