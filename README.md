@@ -4,8 +4,9 @@
 
 ## 📁 Structure
 
-- 🪟 `windows/` - PowerShell profile, Oh My Posh theme, git aliases, git config, bootstrap script
+- 🪟 `windows/` - PowerShell profile, git aliases, git config, bootstrap script
 - 🐧 `linux/` - Linux dotfiles (.bashrc, .zshrc, etc.)
+- 🚀 `starship.toml` - Shared Starship prompt config (Windows + Linux)
 
 ## 🚀 Windows Setup
 
@@ -16,9 +17,8 @@ irm https://raw.githubusercontent.com/adammanderson/dotfiles/main/windows/bootst
 ```
 
 This will:
-- ⚡ Install Oh My Posh (skips if already installed)
-- 🛤️ Add Oh My Posh to your user PATH
-- 🎨 Download the Oh My Posh theme
+- 🚀 Install Starship prompt (skips if already installed)
+- 🎨 Download the Starship config from repo root
 - 🔧 Download git aliases
 - 📝 Set up your PowerShell profile
 - 🐙 Apply git config (Vim editor, autoSetupRemote, main as default branch)
@@ -83,4 +83,4 @@ Then restart PowerShell to apply all changes. 🎉
 
 ## 🐧 Linux Setup
 
-Copy files from `linux/` to your home directory.
+Copy files from `linux/` to your home directory. Copy `starship.toml` to `~/.config/starship.toml`.

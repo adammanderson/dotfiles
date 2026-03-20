@@ -1,13 +1,13 @@
 # bootstrap.ps1
 # Windows dotfiles bootstrap script
-# Installs Oh My Posh (no admin required) and sets up PowerShell profile, theme and git aliases
+# Installs Starship, Vim (no admin required) and sets up PowerShell profile and git aliases
 # Usage: irm https://raw.githubusercontent.com/adammanderson/dotfiles/main/windows/bootstrap.ps1 | iex
 
 $ErrorActionPreference = "Stop"
-$dotfilesRepo = "https://raw.githubusercontent.com/adammanderson/dotfiles/main/windows"
-$ompBinDir    = "$env:LOCALAPPDATA\Programs\oh-my-posh\bin"
-$ompExe       = "$ompBinDir\oh-my-posh.exe"
-$ompConfig    = "$env:USERPROFILE\.oh-my-posh.omp.json"
+$dotfilesRepo    = "https://raw.githubusercontent.com/adammanderson/dotfiles/main"
+$dotfilesWin     = "$dotfilesRepo/windows"
+$dotfilesDir     = "$env:USERPROFILE\dev\dotfiles"
+$dotfilesDirWin  = "$dotfilesDir\windows"
 
 function Write-Step($msg) {
     Write-Host "`n==> $msg" -ForegroundColor Cyan
@@ -21,98 +21,100 @@ function Write-Warn($msg) {
     Write-Host "    [!!] $msg" -ForegroundColor Yellow
 }
 
-# ── 1. Install Oh My Posh ────────────────────────────────────────────────────
-Write-Step "Checking for Oh My Posh..."
+function Add-ToPath($dir) {
+    $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+    if ($currentPath -notlike "*$dir*") {
+        [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$dir", "User")
+        $env:PATH += ";$dir"
+        Write-Success "Added $dir to PATH"
+    } else {
+        Write-Warn "$dir already in PATH, skipping"
+    }
+}
 
-$ompInstalled = Get-Command oh-my-posh -ErrorAction SilentlyContinue
-if ($ompInstalled) {
-    Write-Warn "Oh My Posh already installed at $($ompInstalled.Source), skipping download"
-} elseif (Test-Path $ompExe) {
-    Write-Warn "oh-my-posh.exe already exists at $ompExe, skipping download"
+# ── 1. Install Starship ──────────────────────────────────────────────────────
+Write-Step "Checking for Starship..."
+
+$starshipInstalled = Get-Command starship -ErrorAction SilentlyContinue
+if ($starshipInstalled) {
+    Write-Warn "Starship already installed at $($starshipInstalled.Source), skipping"
 } else {
-    Write-Step "Installing Oh My Posh (no admin required)..."
+    Write-Step "Installing Starship (no admin required)..."
 
-    New-Item -Path $ompBinDir -ItemType Directory -Force | Out-Null
+    $starshipDir = "$env:LOCALAPPDATA\Programs\starship"
+    New-Item -Path $starshipDir -ItemType Directory -Force | Out-Null
 
     Invoke-WebRequest `
-        -Uri "https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-windows-amd64.exe" `
-        -OutFile $ompExe
+        -Uri "https://github.com/starship/starship/releases/latest/download/starship-x86_64-pc-windows-msvc.zip" `
+        -OutFile "$starshipDir\starship.zip"
 
-    Write-Success "oh-my-posh.exe downloaded to $ompBinDir"
+    Expand-Archive "$starshipDir\starship.zip" -DestinationPath $starshipDir -Force
+    Remove-Item "$starshipDir\starship.zip"
+
+    Add-ToPath $starshipDir
+    Write-Success "Starship installed at $starshipDir"
 }
 
-# ── 2. Add Oh My Posh to user PATH ──────────────────────────────────────────
-Write-Step "Adding Oh My Posh to user PATH..."
+# ── 2. Download Starship config ──────────────────────────────────────────────
+Write-Step "Downloading Starship config..."
 
-$currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-if ($currentPath -notlike "*$ompBinDir*") {
-    [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$ompBinDir", "User")
-    $env:PATH += ";$ompBinDir"
-    Write-Success "Added to PATH"
-} else {
-    Write-Warn "Already in PATH, skipping"
-}
-
-# ── 3. Download Oh My Posh theme ────────────────────────────────────────────
-Write-Step "Downloading Oh My Posh theme..."
+New-Item -Path $dotfilesDir -ItemType Directory -Force | Out-Null
 
 Invoke-WebRequest `
-    -Uri "$dotfilesRepo/.oh-my-posh.omp.json" `
-    -OutFile $ompConfig
+    -Uri "$dotfilesRepo/starship.toml" `
+    -OutFile "$dotfilesDir\starship.toml"
 
-Write-Success "Theme saved to $ompConfig"
+Write-Success "Starship config saved to $dotfilesDir\starship.toml"
 
-# ── 4. Download git aliases ─────────────────────────────────────────────────
+# ── 3. Download git aliases ──────────────────────────────────────────────────
 Write-Step "Downloading git aliases..."
 
-$gitAliasesDir  = "$env:USERPROFILE\dev\dotfiles\windows"
-$gitAliasesFile = "$gitAliasesDir\git-aliases.ps1"
-
-New-Item -Path $gitAliasesDir -ItemType Directory -Force | Out-Null
+New-Item -Path $dotfilesDirWin -ItemType Directory -Force | Out-Null
 
 Invoke-WebRequest `
-    -Uri "$dotfilesRepo/git-aliases.ps1" `
-    -OutFile $gitAliasesFile
+    -Uri "$dotfilesWin/git-aliases.ps1" `
+    -OutFile "$dotfilesDirWin\git-aliases.ps1"
 
-Write-Success "Git aliases saved to $gitAliasesFile"
+Write-Success "Git aliases saved to $dotfilesDirWin\git-aliases.ps1"
 
-# ── 5. Set up PowerShell profile ────────────────────────────────────────────
+# ── 4. Set up PowerShell profile ────────────────────────────────────────────
 Write-Step "Setting up PowerShell profile..."
 
 $profileDir = Split-Path $PROFILE
 New-Item -Path $profileDir -ItemType Directory -Force | Out-Null
 
-$profileContent = @"
-# Oh My Posh
-oh-my-posh init pwsh --config "`$env:USERPROFILE\.oh-my-posh.omp.json" | Invoke-Expression
+$profileDir = Split-Path $PROFILE
+New-Item -Path $profileDir -ItemType Directory -Force | Out-Null
 
-# Git aliases
-. "`$env:USERPROFILE\dev\dotfiles\windows\git-aliases.ps1"
-"@
+# Read existing profile or start fresh
+$existing = if (Test-Path $PROFILE) { Get-Content $PROFILE -Raw } else { "" }
 
-if (Test-Path $PROFILE) {
-    $existing = Get-Content $PROFILE -Raw
+$linesToAdd = @()
 
-    if ($existing -like "*oh-my-posh*") {
-        Write-Warn "oh-my-posh already in profile, skipping that line"
-        $profileContent = $profileContent -replace "(?m)^# Oh My Posh\r?\noh-my-posh.*\r?\n", ""
-    }
-
-    if ($existing -like "*git-aliases*") {
-        Write-Warn "git-aliases already in profile, skipping that line"
-        $profileContent = $profileContent -replace "(?m)^# Git aliases\r?\n.*git-aliases.*\r?\n", ""
-    }
-
-    if ($profileContent.Trim()) {
-        Add-Content $PROFILE "`n$profileContent"
-    }
+if ($existing -notlike "*starship*") {
+    $linesToAdd += "# Starship"
+    $linesToAdd += "`$env:STARSHIP_CONFIG = `"`$env:USERPROFILE\dev\dotfiles\starship.toml`""
+    $linesToAdd += "Invoke-Expression (&starship init powershell)"
 } else {
-    Set-Content $PROFILE $profileContent
+    Write-Warn "Starship already in profile, skipping"
+}
+
+if ($existing -notlike "*git-aliases*") {
+    $linesToAdd += ""
+    $linesToAdd += "# Git aliases"
+    $linesToAdd += ". `"`$env:USERPROFILE\dev\dotfiles\windows\git-aliases.ps1`""
+} else {
+    Write-Warn "Git aliases already in profile, skipping"
+}
+
+if ($linesToAdd.Count -gt 0) {
+    $toAppend = "`n" + ($linesToAdd -join "`n")
+    Add-Content $PROFILE $toAppend
 }
 
 Write-Success "Profile updated at $PROFILE"
 
-# ── 6. Install Vim ──────────────────────────────────────────────────────────
+# ── 5. Install Vim ───────────────────────────────────────────────────────────
 Write-Step "Checking for Vim..."
 
 $vimInstalled = Get-Command vim -ErrorAction SilentlyContinue
@@ -126,7 +128,6 @@ if ($vimInstalled) {
 
     New-Item -Path $vimDir -ItemType Directory -Force | Out-Null
 
-    # Resolve latest release dynamically via GitHub API
     $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/vim/vim-win32-installer/releases/latest"
     $vimAsset = $releaseInfo.assets | Where-Object { $_.name -match "^gvim_[\d.]+_x64\.zip$" } | Select-Object -First 1
 
@@ -134,31 +135,28 @@ if ($vimInstalled) {
         Write-Warn "Could not find Vim x64 zip in latest release — skipping Vim install"
     } else {
         Invoke-WebRequest -Uri $vimAsset.browser_download_url -OutFile $vimZip
-
         Expand-Archive $vimZip -DestinationPath $vimDir -Force
         Remove-Item $vimZip
 
-        # Find vim.exe under the extracted folder
         $vimExe = Get-ChildItem $vimDir -Recurse -Filter "vim.exe" | Select-Object -First 1
         if ($vimExe) {
-            $vimBinDir = $vimExe.DirectoryName
-
-            # Add to user PATH
-            $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-            if ($currentPath -notlike "*$vimBinDir*") {
-                [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$vimBinDir", "User")
-                $env:PATH += ";$vimBinDir"
-            }
-
-            # Set as git editor
+            Add-ToPath $vimExe.DirectoryName
             git config --global core.editor "vim"
-
-            Write-Success "Vim installed at $vimBinDir and set as git editor"
+            Write-Success "Vim installed at $($vimExe.DirectoryName) and set as git editor"
         } else {
             Write-Warn "Could not find vim.exe after extraction — check $vimDir manually"
         }
     }
 }
+
+# ── 6. Apply git config ──────────────────────────────────────────────────────
+Write-Step "Applying git config..."
+
+Invoke-WebRequest `
+    -Uri "$dotfilesWin/.gitconfig" `
+    -OutFile "$env:USERPROFILE\.gitconfig"
+
+Write-Success "Git config applied"
 
 # ── 7. Done ──────────────────────────────────────────────────────────────────
 Write-Host ""
