@@ -1,25 +1,15 @@
 # bootstrap.ps1
 # Windows dotfiles bootstrap script
-# Installs Starship, Vim (no admin required) and sets up PowerShell profile and git aliases
-# Usage: irm https://raw.githubusercontent.com/adammanderson/dotfiles/main/windows/bootstrap.ps1 | iex
+# No admin required. Run remotely with:
+# irm https://raw.githubusercontent.com/adammanderson/dotfiles/main/windows/bootstrap.ps1 | iex
 
 $ErrorActionPreference = "Stop"
-$dotfilesRepo    = "https://raw.githubusercontent.com/adammanderson/dotfiles/main"
-$dotfilesWin     = "$dotfilesRepo/windows"
-$dotfilesDir     = "$env:USERPROFILE\dev\dotfiles"
-$dotfilesDirWin  = "$dotfilesDir\windows"
+$rawRepo    = "https://raw.githubusercontent.com/adammanderson/dotfiles/main"
+$configDir  = "$env:LOCALAPPDATA\dotfiles"
 
-function Write-Step($msg) {
-    Write-Host "`n==> $msg" -ForegroundColor Cyan
-}
-
-function Write-Success($msg) {
-    Write-Host "    [OK] $msg" -ForegroundColor Green
-}
-
-function Write-Warn($msg) {
-    Write-Host "    [!!] $msg" -ForegroundColor Yellow
-}
+function Write-Step($msg)    { Write-Host "`n==> $msg" -ForegroundColor Cyan }
+function Write-Success($msg) { Write-Host "    [OK] $msg" -ForegroundColor Green }
+function Write-Warn($msg)    { Write-Host "    [!!] $msg" -ForegroundColor Yellow }
 
 function Add-ToPath($dir) {
     $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
@@ -32,7 +22,14 @@ function Add-ToPath($dir) {
     }
 }
 
-# ── 1. Install Starship ──────────────────────────────────────────────────────
+function Download($url, $dest) {
+    Invoke-WebRequest -Uri $url -OutFile $dest
+}
+
+# ── 1. Create config dir ─────────────────────────────────────────────────────
+New-Item -Path $configDir -ItemType Directory -Force | Out-Null
+
+# ── 2. Install Starship ──────────────────────────────────────────────────────
 Write-Step "Checking for Starship..."
 
 $starshipInstalled = Get-Command starship -ErrorAction SilentlyContinue
@@ -43,78 +40,29 @@ if ($starshipInstalled) {
 
     $starshipDir = "$env:LOCALAPPDATA\Programs\starship"
     New-Item -Path $starshipDir -ItemType Directory -Force | Out-Null
-
-    Invoke-WebRequest `
-        -Uri "https://github.com/starship/starship/releases/latest/download/starship-x86_64-pc-windows-msvc.zip" `
-        -OutFile "$starshipDir\starship.zip"
-
+    Download "https://github.com/starship/starship/releases/latest/download/starship-x86_64-pc-windows-msvc.zip" "$starshipDir\starship.zip"
     Expand-Archive "$starshipDir\starship.zip" -DestinationPath $starshipDir -Force
     Remove-Item "$starshipDir\starship.zip"
-
     Add-ToPath $starshipDir
     Write-Success "Starship installed at $starshipDir"
 }
 
-# ── 2. Download Starship config ──────────────────────────────────────────────
+# ── 3. Download Starship config ──────────────────────────────────────────────
 Write-Step "Downloading Starship config..."
+Download "$rawRepo/starship.toml" "$configDir\starship.toml"
+Write-Success "Starship config saved to $configDir\starship.toml"
 
-New-Item -Path $dotfilesDir -ItemType Directory -Force | Out-Null
-
-Invoke-WebRequest `
-    -Uri "$dotfilesRepo/starship.toml" `
-    -OutFile "$dotfilesDir\starship.toml"
-
-Write-Success "Starship config saved to $dotfilesDir\starship.toml"
-
-# ── 3. Download git aliases ──────────────────────────────────────────────────
+# ── 4. Download git aliases ──────────────────────────────────────────────────
 Write-Step "Downloading git aliases..."
+Download "$rawRepo/windows/git-aliases.ps1" "$configDir\git-aliases.ps1"
+Write-Success "Git aliases saved to $configDir\git-aliases.ps1"
 
-New-Item -Path $dotfilesDirWin -ItemType Directory -Force | Out-Null
+# ── 5. Apply git config ──────────────────────────────────────────────────────
+Write-Step "Applying git config..."
+Download "$rawRepo/windows/.gitconfig" "$env:USERPROFILE\.gitconfig"
+Write-Success "Git config applied"
 
-Invoke-WebRequest `
-    -Uri "$dotfilesWin/git-aliases.ps1" `
-    -OutFile "$dotfilesDirWin\git-aliases.ps1"
-
-Write-Success "Git aliases saved to $dotfilesDirWin\git-aliases.ps1"
-
-# ── 4. Set up PowerShell profile ────────────────────────────────────────────
-Write-Step "Setting up PowerShell profile..."
-
-$profileDir = Split-Path $PROFILE
-New-Item -Path $profileDir -ItemType Directory -Force | Out-Null
-
-$profileDir = Split-Path $PROFILE
-New-Item -Path $profileDir -ItemType Directory -Force | Out-Null
-
-# Read existing profile or start fresh
-$existing = if (Test-Path $PROFILE) { Get-Content $PROFILE -Raw } else { "" }
-
-$linesToAdd = @()
-
-if ($existing -notlike "*starship*") {
-    $linesToAdd += "# Starship"
-    $linesToAdd += "`$env:STARSHIP_CONFIG = `"`$env:USERPROFILE\dev\dotfiles\starship.toml`""
-    $linesToAdd += "Invoke-Expression (&starship init powershell)"
-} else {
-    Write-Warn "Starship already in profile, skipping"
-}
-
-if ($existing -notlike "*git-aliases*") {
-    $linesToAdd += ""
-    $linesToAdd += "# Git aliases"
-    $linesToAdd += ". `"`$env:USERPROFILE\dev\dotfiles\windows\git-aliases.ps1`""
-} else {
-    Write-Warn "Git aliases already in profile, skipping"
-}
-
-if ($linesToAdd.Count -gt 0) {
-    $toAppend = "`n" + ($linesToAdd -join "`n")
-    Add-Content $PROFILE $toAppend
-}
-
-Write-Success "Profile updated at $PROFILE"
-
-# ── 5. Install Vim ───────────────────────────────────────────────────────────
+# ── 6. Install Vim ───────────────────────────────────────────────────────────
 Write-Step "Checking for Vim..."
 
 $vimInstalled = Get-Command vim -ErrorAction SilentlyContinue
@@ -125,16 +73,15 @@ if ($vimInstalled) {
 
     $vimDir = "$env:LOCALAPPDATA\Programs\vim"
     $vimZip = "$vimDir\vim.zip"
-
     New-Item -Path $vimDir -ItemType Directory -Force | Out-Null
 
     $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/vim/vim-win32-installer/releases/latest"
     $vimAsset = $releaseInfo.assets | Where-Object { $_.name -match "^gvim_[\d.]+_x64\.zip$" } | Select-Object -First 1
 
     if (-not $vimAsset) {
-        Write-Warn "Could not find Vim x64 zip in latest release — skipping Vim install"
+        Write-Warn "Could not find Vim x64 zip in latest release — skipping"
     } else {
-        Invoke-WebRequest -Uri $vimAsset.browser_download_url -OutFile $vimZip
+        Download $vimAsset.browser_download_url $vimZip
         Expand-Archive $vimZip -DestinationPath $vimDir -Force
         Remove-Item $vimZip
 
@@ -149,16 +96,41 @@ if ($vimInstalled) {
     }
 }
 
-# ── 6. Apply git config ──────────────────────────────────────────────────────
-Write-Step "Applying git config..."
+# ── 7. Set up PowerShell profile ─────────────────────────────────────────────
+Write-Step "Setting up PowerShell profile..."
 
-Invoke-WebRequest `
-    -Uri "$dotfilesWin/.gitconfig" `
-    -OutFile "$env:USERPROFILE\.gitconfig"
+$profileDir = Split-Path $PROFILE
+New-Item -Path $profileDir -ItemType Directory -Force | Out-Null
+if (-not (Test-Path $PROFILE)) { New-Item -Path $PROFILE -ItemType File -Force | Out-Null }
 
-Write-Success "Git config applied"
+$existing = Get-Content $PROFILE -Raw
 
-# ── 7. Done ──────────────────────────────────────────────────────────────────
+$linesToAdd = @()
+
+if ($existing -notlike "*starship*") {
+    $linesToAdd += "# Starship"
+    $linesToAdd += "`$env:STARSHIP_CONFIG = `"$configDir\starship.toml`""
+    $linesToAdd += "Invoke-Expression (&starship init powershell)"
+} else {
+    Write-Warn "Starship already in profile, skipping"
+}
+
+if ($existing -notlike "*git-aliases*") {
+    $linesToAdd += ""
+    $linesToAdd += "# Git aliases"
+    $linesToAdd += ". `"$configDir\git-aliases.ps1`""
+} else {
+    Write-Warn "Git aliases already in profile, skipping"
+}
+
+if ($linesToAdd.Count -gt 0) {
+    Add-Content -Path $PROFILE -Value ("`n" + ($linesToAdd -join "`n"))
+    Write-Success "Profile updated at $PROFILE"
+} else {
+    Write-Warn "Profile already up to date, nothing to add"
+}
+
+# ── 8. Done ───────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "Bootstrap complete!" -ForegroundColor Green
 Write-Host "Restart PowerShell to apply all changes." -ForegroundColor Yellow
