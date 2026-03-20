@@ -6,7 +6,7 @@ Set-Alias g git
 function gst { git status }
 function gl { git pull }
 function gup { git pull --rebase }
-function gp { git push }
+function gpsh { git push }
 function gd { git diff }
 function gdc { git diff --cached }
 function gc { git commit -v }
