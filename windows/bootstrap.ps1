@@ -103,7 +103,8 @@ $profileDir = Split-Path $PROFILE
 New-Item -Path $profileDir -ItemType Directory -Force | Out-Null
 if (-not (Test-Path $PROFILE)) { New-Item -Path $PROFILE -ItemType File -Force | Out-Null }
 
-$existing = Get-Content $PROFILE -Raw
+$existing = if (Test-Path $PROFILE) { Get-Content $PROFILE -Raw } else { "" }
+if ($null -eq $existing) { $existing = "" }
 
 $linesToAdd = @()
 
