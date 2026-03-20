@@ -22,15 +22,24 @@ function Write-Warn($msg) {
 }
 
 # ── 1. Install Oh My Posh ────────────────────────────────────────────────────
-Write-Step "Installing Oh My Posh (no admin required)..."
+Write-Step "Checking for Oh My Posh..."
 
-New-Item -Path $ompBinDir -ItemType Directory -Force | Out-Null
+$ompInstalled = Get-Command oh-my-posh -ErrorAction SilentlyContinue
+if ($ompInstalled) {
+    Write-Warn "Oh My Posh already installed at $($ompInstalled.Source), skipping download"
+} elseif (Test-Path $ompExe) {
+    Write-Warn "oh-my-posh.exe already exists at $ompExe, skipping download"
+} else {
+    Write-Step "Installing Oh My Posh (no admin required)..."
 
-Invoke-WebRequest `
-    -Uri "https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-windows-amd64.exe" `
-    -OutFile $ompExe
+    New-Item -Path $ompBinDir -ItemType Directory -Force | Out-Null
 
-Write-Success "oh-my-posh.exe downloaded to $ompBinDir"
+    Invoke-WebRequest `
+        -Uri "https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-windows-amd64.exe" `
+        -OutFile $ompExe
+
+    Write-Success "oh-my-posh.exe downloaded to $ompBinDir"
+}
 
 # ── 2. Add Oh My Posh to user PATH ──────────────────────────────────────────
 Write-Step "Adding Oh My Posh to user PATH..."
