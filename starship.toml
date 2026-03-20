@@ -5,6 +5,9 @@ format = """
 $directory\
 $git_branch\
 $git_status\
+$git_commit\
+$git_state\
+$nodejs\
 $fill\
 $battery\
 $time\
@@ -24,6 +27,14 @@ symbol = " "
 style = "bold purple"
 format = "[ $symbol$branch ]($style)"
 
+[git_commit]
+commit_hash_length = 4
+tag_symbol = '🔖 '
+
+[git_state]
+format = '[\($state( $progress_current of $progress_total)\)]($style) '
+cherry_pick = '[🍒 PICKING](bold red)'
+
 [git_status]
 style = "bold yellow"
 format = "[$all_status$ahead_behind ]($style)"
@@ -36,6 +47,14 @@ stashed = "📦"
 modified = "!${count}"
 staged = "+${count}"
 deleted = "✘${count}"
+
+[nodejs]
+format = 'via [🤖 $version](bold green) '
+
+[dotnet]
+symbol = '🥅 '
+style = 'green'
+heuristic = false
 
 # ── Fill (pushes right side to the edge) ────────────────────────────────────
 [fill]
