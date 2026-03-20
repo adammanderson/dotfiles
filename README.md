@@ -1,24 +1,29 @@
-# dotfiles
+# ✨ dotfiles
 
-Personal config files for Windows and Linux.
+> Personal config files for Windows and Linux.
 
-## Structure
+## 📁 Structure
 
-- `windows/` - PowerShell profile, Oh My Posh theme
-- `linux/` - Linux dotfiles (.bashrc, .zshrc, etc.)
+- 🪟 `windows/` - PowerShell profile, Oh My Posh theme, git aliases, bootstrap script
+- 🐧 `linux/` - Linux dotfiles (.bashrc, .zshrc, etc.)
 
-## Windows Setup
+## 🚀 Windows Setup
 
-1. Install Oh My Posh manually:
+Run this single command in PowerShell (no admin required):
 
 ```powershell
-   New-Item -Path "`$env:LOCALAPPDATA\Programs\oh-my-posh\bin" -ItemType Directory -Force
-   Invoke-WebRequest -Uri "https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-windows-amd64.exe" -OutFile "`$env:LOCALAPPDATA\Programs\oh-my-posh\bin\oh-my-posh.exe"
+irm https://raw.githubusercontent.com/adammanderson/dotfiles/main/windows/bootstrap.ps1 | iex
 ```
 
-2. Copy `windows/Microsoft.PowerShell_profile.ps1` to `$PROFILE`
-3. Copy `windows/.oh-my-posh.omp.json` to `~/.oh-my-posh.omp.json`
+This will:
+- ⚡ Install Oh My Posh (skips if already installed)
+- 🛤️ Add Oh My Posh to your user PATH
+- 🎨 Download the Oh My Posh theme
+- 🔧 Download git aliases
+- 📝 Set up your PowerShell profile
 
-## Linux Setup
+Then restart PowerShell to apply all changes. 🎉
+
+## 🐧 Linux Setup
 
 Copy files from `linux/` to your home directory.
