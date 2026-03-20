@@ -3,6 +3,7 @@ function current_branch { git rev-parse --abbrev-ref HEAD }
 
 Set-Alias g git
 
+function gaa { git add . }
 function gst { git status }
 function gl { git pull }
 function gup { git pull --rebase }

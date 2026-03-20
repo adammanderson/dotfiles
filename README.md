@@ -4,7 +4,7 @@
 
 ## 📁 Structure
 
-- 🪟 `windows/` - PowerShell profile, Oh My Posh theme, git aliases, bootstrap script
+- 🪟 `windows/` - PowerShell profile, Oh My Posh theme, git aliases, git config, bootstrap script
 - 🐧 `linux/` - Linux dotfiles (.bashrc, .zshrc, etc.)
 
 ## 🚀 Windows Setup
@@ -21,6 +21,8 @@ This will:
 - 🎨 Download the Oh My Posh theme
 - 🔧 Download git aliases
 - 📝 Set up your PowerShell profile
+- 🐙 Apply git config (Vim editor, autoSetupRemote, main as default branch)
+- 📦 Install Vim (skips if already installed)
 
 Then restart PowerShell to apply all changes. 🎉
 

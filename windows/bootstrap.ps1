@@ -112,7 +112,49 @@ if (Test-Path $PROFILE) {
 
 Write-Success "Profile updated at $PROFILE"
 
-# ── 6. Done ──────────────────────────────────────────────────────────────────
+# ── 6. Install Vim ──────────────────────────────────────────────────────────
+Write-Step "Checking for Vim..."
+
+$vimInstalled = Get-Command vim -ErrorAction SilentlyContinue
+if ($vimInstalled) {
+    Write-Warn "Vim already installed at $($vimInstalled.Source), skipping"
+} else {
+    Write-Step "Installing Vim (no admin required)..."
+
+    $vimDir = "$env:LOCALAPPDATA\Programs\vim"
+    $vimZip = "$vimDir\vim.zip"
+
+    New-Item -Path $vimDir -ItemType Directory -Force | Out-Null
+
+    Invoke-WebRequest `
+        -Uri "https://github.com/vim/vim-win32-installer/releases/latest/download/gvim_9.1.0000_x64.zip" `
+        -OutFile $vimZip
+
+    Expand-Archive $vimZip -DestinationPath $vimDir -Force
+    Remove-Item $vimZip
+
+    # Find vim.exe under the extracted folder
+    $vimExe = Get-ChildItem $vimDir -Recurse -Filter "vim.exe" | Select-Object -First 1
+    if ($vimExe) {
+        $vimBinDir = $vimExe.DirectoryName
+
+        # Add to user PATH
+        $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        if ($currentPath -notlike "*$vimBinDir*") {
+            [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$vimBinDir", "User")
+            $env:PATH += ";$vimBinDir"
+        }
+
+        # Set as git editor
+        git config --global core.editor "vim"
+
+        Write-Success "Vim installed at $vimBinDir and set as git editor"
+    } else {
+        Write-Warn "Could not find vim.exe after extraction — check $vimDir manually"
+    }
+}
+
+# ── 7. Done ──────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "Bootstrap complete!" -ForegroundColor Green
 Write-Host "Restart PowerShell to apply all changes." -ForegroundColor Yellow
