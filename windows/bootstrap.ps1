@@ -126,31 +126,37 @@ if ($vimInstalled) {
 
     New-Item -Path $vimDir -ItemType Directory -Force | Out-Null
 
-    Invoke-WebRequest `
-        -Uri "https://github.com/vim/vim-win32-installer/releases/latest/download/gvim_9.1.0000_x64.zip" `
-        -OutFile $vimZip
+    # Resolve latest release dynamically via GitHub API
+    $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/vim/vim-win32-installer/releases/latest"
+    $vimAsset = $releaseInfo.assets | Where-Object { $_.name -like "*_x64.zip" } | Select-Object -First 1
 
-    Expand-Archive $vimZip -DestinationPath $vimDir -Force
-    Remove-Item $vimZip
-
-    # Find vim.exe under the extracted folder
-    $vimExe = Get-ChildItem $vimDir -Recurse -Filter "vim.exe" | Select-Object -First 1
-    if ($vimExe) {
-        $vimBinDir = $vimExe.DirectoryName
-
-        # Add to user PATH
-        $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-        if ($currentPath -notlike "*$vimBinDir*") {
-            [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$vimBinDir", "User")
-            $env:PATH += ";$vimBinDir"
-        }
-
-        # Set as git editor
-        git config --global core.editor "vim"
-
-        Write-Success "Vim installed at $vimBinDir and set as git editor"
+    if (-not $vimAsset) {
+        Write-Warn "Could not find Vim x64 zip in latest release — skipping Vim install"
     } else {
-        Write-Warn "Could not find vim.exe after extraction — check $vimDir manually"
+        Invoke-WebRequest -Uri $vimAsset.browser_download_url -OutFile $vimZip
+
+        Expand-Archive $vimZip -DestinationPath $vimDir -Force
+        Remove-Item $vimZip
+
+        # Find vim.exe under the extracted folder
+        $vimExe = Get-ChildItem $vimDir -Recurse -Filter "vim.exe" | Select-Object -First 1
+        if ($vimExe) {
+            $vimBinDir = $vimExe.DirectoryName
+
+            # Add to user PATH
+            $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+            if ($currentPath -notlike "*$vimBinDir*") {
+                [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$vimBinDir", "User")
+                $env:PATH += ";$vimBinDir"
+            }
+
+            # Set as git editor
+            git config --global core.editor "vim"
+
+            Write-Success "Vim installed at $vimBinDir and set as git editor"
+        } else {
+            Write-Warn "Could not find vim.exe after extraction — check $vimDir manually"
+        }
     }
 }
 
