@@ -128,7 +128,7 @@ if ($vimInstalled) {
 
     # Resolve latest release dynamically via GitHub API
     $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/vim/vim-win32-installer/releases/latest"
-    $vimAsset = $releaseInfo.assets | Where-Object { $_.name -like "*_x64.zip" } | Select-Object -First 1
+    $vimAsset = $releaseInfo.assets | Where-Object { $_.name -match "^gvim_[\d.]+_x64\.zip$" } | Select-Object -First 1
 
     if (-not $vimAsset) {
         Write-Warn "Could not find Vim x64 zip in latest release — skipping Vim install"
